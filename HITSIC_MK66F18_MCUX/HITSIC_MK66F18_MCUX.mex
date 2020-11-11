@@ -118,6 +118,11 @@
                         <data>true</data>
                      </feature>
                   </dependency>
+                  <dependency resourceType="Peripheral" resourceId="FTM3" description="Peripheral FTM3 is not initialized" problem_level="1" source="Pins:RTEPIN_Basic">
+                     <feature name="initialized" evaluation="equal">
+                        <data>true</data>
+                     </feature>
+                  </dependency>
                   <dependency resourceType="SWComponent" resourceId="platform.drivers.common" description="Pins initialization requires the COMMON Driver in the project." problem_level="2" source="Pins:RTEPIN_Basic">
                      <feature name="enabled" evaluation="equal" configuration="core0">
                         <data>true</data>
@@ -159,6 +164,12 @@
                   <pin peripheral="ADC1" signal="VREFL" pin_num="33" pin_signal="VREFL"/>
                   <pin peripheral="ADC0" signal="VALTL" pin_num="34" pin_signal="VSSA"/>
                   <pin peripheral="ADC1" signal="VALTL" pin_num="34" pin_signal="VSSA"/>
+                  <pin peripheral="GPIOE" signal="GPIO, 10" pin_num="13" pin_signal="PTE10/LLWU_P18/I2C3_SDA/I2S0_TXD0/LPUART0_CTS_b/FTM3_CH5/USB1_ID"/>
+                  <pin peripheral="FTM3" signal="CH, 5" pin_num="13" pin_signal="PTE10/LLWU_P18/I2C3_SDA/I2S0_TXD0/LPUART0_CTS_b/FTM3_CH5/USB1_ID">
+                     <pin_features>
+                        <pin_feature name="identifier" value=""/>
+                     </pin_features>
+                  </pin>
                </pins>
             </function>
             <function name="RTEPIN_Digital">
@@ -962,7 +973,6 @@
                      <config_set name="fsl_lptmr">
                         <struct name="lptmr_config">
                            <setting name="timerMode" value="kLPTMR_TimerModeTimeCounter"/>
-                           <setting name="pinSelect" value="ALT.0"/>
                            <setting name="pinPolarity" value="kLPTMR_PinPolarityActiveHigh"/>
                            <setting name="enableFreeRunning" value="false"/>
                            <setting name="bypassPrescaler" value="true"/>
