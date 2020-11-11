@@ -160,6 +160,13 @@ void MENU_DataSetUp(void)
 {
     MENU_ListInsert(menu_menuRoot, MENU_ItemConstruct(nullType, NULL, "EXAMPLE", 0, 0));
     //TODO: 在这里添加子菜单和菜单项
+    static float l=3.14f,h=3.15,w=3.16;
+    static menu_list_t *testList;
+    testList = MENU_ListConstruct("TestList", 20, menu_menuRoot);
+    MENU_ListInsert(menu_menuRoot, MENU_ItemConstruct(menuType, testList, "TestList", 0, 0));//菜单第一项
+    MENU_ListInsert(testList, MENU_ItemConstruct(varfType, &l, "l", 10, menuItem_data_global));
+    MENU_ListInsert(testList, MENU_ItemConstruct(varfType, &h, "h", 11,menuItem_data_ROFlag | menuItem_data_NoSave | menuItem_data_NoLoad));
+    MENU_ListInsert(testList, MENU_ItemConstruct(varfType, &w, "w", 1, menuItem_data_region));
 }
 
 void CAM_ZF9V034_DmaCallback(edma_handle_t *handle, void *userData, bool transferDone, uint32_t tcds)
