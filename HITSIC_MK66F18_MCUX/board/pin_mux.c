@@ -126,6 +126,11 @@ RTEPIN_Basic:
   - {pin_num: '33', peripheral: ADC1, signal: VREFL, pin_signal: VREFL}
   - {pin_num: '34', peripheral: ADC0, signal: VALTL, pin_signal: VSSA}
   - {pin_num: '34', peripheral: ADC1, signal: VALTL, pin_signal: VSSA}
+  - {pin_num: '15', peripheral: GPIOE, signal: 'GPIO, 12', pin_signal: PTE12/I2S0_TX_BCLK/FTM3_CH7}
+  - {pin_num: '104', peripheral: FTM0, signal: 'CH, 0', pin_signal: ADC0_SE15/TSI0_CH14/PTC1/LLWU_P6/SPI0_PCS3/UART1_RTS_b/FTM0_CH0/FB_AD13/SDRAM_A21/I2S0_TXD0}
+  - {pin_num: '105', peripheral: FTM0, signal: 'CH, 1', pin_signal: ADC0_SE4b/CMP1_IN0/TSI0_CH15/PTC2/SPI0_PCS2/UART1_CTS_b/FTM0_CH1/FB_AD12/SDRAM_A20/I2S0_TX_FS}
+  - {pin_num: '106', peripheral: FTM0, signal: 'CH, 2', pin_signal: CMP1_IN1/PTC3/LLWU_P7/SPI0_PCS1/UART1_RX/FTM0_CH2/CLKOUT/I2S0_TX_BCLK}
+  - {pin_num: '109', peripheral: FTM0, signal: 'CH, 3', pin_signal: PTC4/LLWU_P8/SPI0_PCS0/UART1_TX/FTM0_CH3/FB_AD11/SDRAM_A19/CMP1_OUT}
  * BE CAREFUL MODIFYING THIS COMMENT - IT IS YAML SETTINGS FOR TOOLS ***********
  */
 /* clang-format on */
@@ -140,6 +145,10 @@ void RTEPIN_Basic(void)
 {
     /* Port A Clock Gate Control: Clock enabled */
     CLOCK_EnableClock(kCLOCK_PortA);
+    /* Port C Clock Gate Control: Clock enabled */
+    CLOCK_EnableClock(kCLOCK_PortC);
+    /* Port E Clock Gate Control: Clock enabled */
+    CLOCK_EnableClock(kCLOCK_PortE);
 
     /* PORTA0 (pin 50) is configured as JTAG_TCLK */
     PORT_SetPinMux(RTEPIN_BASIC_SWO_CLK_PORT, RTEPIN_BASIC_SWO_CLK_PIN, kPORT_MuxAlt7);
@@ -152,6 +161,21 @@ void RTEPIN_Basic(void)
 
     /* PORTA5 (pin 55) is configured as JTAG_TRST_b */
     PORT_SetPinMux(RTEPIN_BASIC_RST_PORT, RTEPIN_BASIC_RST_PIN, kPORT_MuxAlt7);
+
+    /* PORTC1 (pin 104) is configured as FTM0_CH0 */
+    PORT_SetPinMux(RTEPIN_BASIC_MOTOR_RA_PORT, RTEPIN_BASIC_MOTOR_RA_PIN, kPORT_MuxAlt4);
+
+    /* PORTC2 (pin 105) is configured as FTM0_CH1 */
+    PORT_SetPinMux(RTEPIN_BASIC_MOTOR_RB_PORT, RTEPIN_BASIC_MOTOR_RB_PIN, kPORT_MuxAlt4);
+
+    /* PORTC3 (pin 106) is configured as FTM0_CH2 */
+    PORT_SetPinMux(RTEPIN_BASIC_MOTOR_LA_PORT, RTEPIN_BASIC_MOTOR_LA_PIN, kPORT_MuxAlt4);
+
+    /* PORTC4 (pin 109) is configured as FTM0_CH3 */
+    PORT_SetPinMux(RTEPIN_BASIC_MOTOR_LB_PORT, RTEPIN_BASIC_MOTOR_LB_PIN, kPORT_MuxAlt4);
+
+    /* PORTE12 (pin 15) is configured as PTE12 */
+    PORT_SetPinMux(RTEPIN_BASIC_SERVO_0_PORT, RTEPIN_BASIC_SERVO_0_PIN, kPORT_MuxAsGpio);
 }
 
 /* clang-format off */

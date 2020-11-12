@@ -52,6 +52,55 @@ void BOARD_InitBootPins(void);
 #define RTEPIN_BASIC_RST_PIN_MASK (1U << 5U)      /*!<@brief PORT pin mask */
                                                   /* @} */
 
+/*! @name PORTE12 (number 15), SERVO_0
+  @{ */
+
+/* Symbols to be used with GPIO driver */
+#define RTEPIN_BASIC_SERVO_0_GPIO GPIOE                /*!<@brief GPIO peripheral base pointer */
+#define RTEPIN_BASIC_SERVO_0_GPIO_PIN_MASK (1U << 12U) /*!<@brief GPIO pin mask */
+
+/* Symbols to be used with PORT driver */
+#define RTEPIN_BASIC_SERVO_0_PORT PORTE                /*!<@brief PORT peripheral base pointer */
+#define RTEPIN_BASIC_SERVO_0_PIN 12U                   /*!<@brief PORT pin number */
+#define RTEPIN_BASIC_SERVO_0_PIN_MASK (1U << 12U)      /*!<@brief PORT pin mask */
+                                                       /* @} */
+
+/*! @name PORTC1 (number 104), MOTOR_RA
+  @{ */
+
+/* Symbols to be used with PORT driver */
+#define RTEPIN_BASIC_MOTOR_RA_PORT PORTC               /*!<@brief PORT peripheral base pointer */
+#define RTEPIN_BASIC_MOTOR_RA_PIN 1U                   /*!<@brief PORT pin number */
+#define RTEPIN_BASIC_MOTOR_RA_PIN_MASK (1U << 1U)      /*!<@brief PORT pin mask */
+                                                       /* @} */
+
+/*! @name PORTC2 (number 105), MOTOR_RB
+  @{ */
+
+/* Symbols to be used with PORT driver */
+#define RTEPIN_BASIC_MOTOR_RB_PORT PORTC               /*!<@brief PORT peripheral base pointer */
+#define RTEPIN_BASIC_MOTOR_RB_PIN 2U                   /*!<@brief PORT pin number */
+#define RTEPIN_BASIC_MOTOR_RB_PIN_MASK (1U << 2U)      /*!<@brief PORT pin mask */
+                                                       /* @} */
+
+/*! @name PORTC3 (number 106), MOTOR_LA
+  @{ */
+
+/* Symbols to be used with PORT driver */
+#define RTEPIN_BASIC_MOTOR_LA_PORT PORTC               /*!<@brief PORT peripheral base pointer */
+#define RTEPIN_BASIC_MOTOR_LA_PIN 3U                   /*!<@brief PORT pin number */
+#define RTEPIN_BASIC_MOTOR_LA_PIN_MASK (1U << 3U)      /*!<@brief PORT pin mask */
+                                                       /* @} */
+
+/*! @name PORTC4 (number 109), MOTOR_LB
+  @{ */
+
+/* Symbols to be used with PORT driver */
+#define RTEPIN_BASIC_MOTOR_LB_PORT PORTC               /*!<@brief PORT peripheral base pointer */
+#define RTEPIN_BASIC_MOTOR_LB_PIN 4U                   /*!<@brief PORT pin number */
+#define RTEPIN_BASIC_MOTOR_LB_PIN_MASK (1U << 4U)      /*!<@brief PORT pin mask */
+                                                       /* @} */
+
 /*!
  * @brief Configures pin routing and optionally pin electrical features.
  *

@@ -1008,7 +1008,7 @@ instance:
       - 0:
         - chnlNumber: 'kFTM_Chnl_7'
         - level: 'kFTM_HighTrue'
-        - dutyCyclePercent: '30'
+        - dutyCyclePercent: '8'
         - enable_chan_irq: 'false'
  * BE CAREFUL MODIFYING THIS COMMENT - IT IS YAML SETTINGS FOR TOOLS **********/
 /* clang-format on */
@@ -1030,7 +1030,7 @@ const ftm_chnl_pwm_signal_param_t SERVO_centerPwmSignalParams[] = {
   {
     .chnlNumber = kFTM_Chnl_7,
     .level = kFTM_HighTrue,
-    .dutyCyclePercent = 30U
+    .dutyCyclePercent = 8U
   }
 };
 
