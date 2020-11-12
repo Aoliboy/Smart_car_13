@@ -84,9 +84,11 @@ FATFS fatfs;                                   //逻辑驱动器的工作区
 
 /** SCLIB_TEST */
 #include "sc_test.hpp"
+#include"image.h"
 
 
 void MENU_DataSetUp(void);
+uint8_t *fullBuffer = NULL;
 
 cam_zf9v034_configPacket_t cameraCfg;
 dmadvp_config_t dmadvpCfg;
@@ -149,7 +151,6 @@ void main(void)
         DMADVP_TransferCreateHandle(&dmadvpHandle, DMADVP0, CAM_ZF9V034_UnitTestDmaCallback);
         uint8_t *imageBuffer0 = new uint8_t[DMADVP0->imgSize];
         uint8_t *imageBuffer1 = new uint8_t[DMADVP0->imgSize];
-        uint8_t *fullBuffer = NULL;
         disp_ssd1306_frameBuffer_t *dispBuffer = new disp_ssd1306_frameBuffer_t;
         DMADVP_TransferSubmitEmptyBuffer(DMADVP0, &dmadvpHandle, imageBuffer0);
         DMADVP_TransferSubmitEmptyBuffer(DMADVP0, &dmadvpHandle, imageBuffer1);
@@ -173,7 +174,8 @@ void main(void)
     {
         while (kStatus_Success != DMADVP_TransferGetFullBuffer(DMADVP0, &dmadvpHandle, &fullBuffer));
 
-
+           THRE();
+           image_main();
                 dispBuffer->Clear();
                 const uint8_t imageTH = 30;
                 for (int i = 0; i < cameraCfg.imageRow; i += 2)
