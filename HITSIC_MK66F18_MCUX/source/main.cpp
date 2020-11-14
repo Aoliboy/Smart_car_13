@@ -111,7 +111,7 @@ void SERVO_GetPid(void);
 void main(void)
 {
     /** 初始化阶段，关闭总中断 */
-    HAL_EnterCritical();
+     HAL_EnterCritical();
 
     /** BSP（板级支持包）初始化 */
     RTECLK_HsRun_180MHz();
@@ -242,6 +242,26 @@ void SERVO_Run(void)
     SCFTM_PWM_ChangeHiRes(FTM3,kFTM_Chnl_7,50,servo_pwm);
 }
 
+    error_2=error_1;
+};
+void SERVO_Run(void *userData)
+{
+    SCFTM_PWM_ChangeHiRes(FTM3,kFTM_Chnl_7,50,servo_pwm);
+}
+
+void MOTOR_Run(void *userData)
+{
+    SCFTM_PWM_ChangeHiRes(FTM0,kFTM_Chnl_0,20000,17);//电机恒定速度输出
+    SCFTM_PWM_ChangeHiRes(FTM0,kFTM_Chnl_1,20000,0);
+    SCFTM_PWM_ChangeHiRes(FTM0,kFTM_Chnl_2,20000,17);
+    SCFTM_PWM_ChangeHiRes(FTM0,kFTM_Chnl_3,20000,0);
+    //    if(get_error()==0)//出赛道保护
+    //    {
+    //        SCFTM_PWM_ChangeHiRes(FTM0,kFTM_Chnl_0,20000,0);
+    //        SCFTM_PWM_ChangeHiRes(FTM0,kFTM_Chnl_2,20000,0);
+    //    }
+
+}
 /**
  * 『灯千结的碎碎念』 Tips by C.M. :
  * 1. 浮点数计算有时（例如除零时）会产生“nan”，即“非数（Not-a-Number）”。
