@@ -170,10 +170,11 @@ void main(void)
     /** 控制环初始化 */
     //TODO: 在这里初始化控制环
     /** 初始化结束，开启总中断 */
-    SCFTM_PWM_ChangeHiRes(FTM0,kFTM_Chnl_0,20000,0);//电机恒定速度输出
-    SCFTM_PWM_ChangeHiRes(FTM0,kFTM_Chnl_1,20000,30);
+    SCFTM_PWM_ChangeHiRes(FTM0,kFTM_Chnl_0,20000,30);//电机恒定速度输出
+    SCFTM_PWM_ChangeHiRes(FTM0,kFTM_Chnl_1,20000,0);
     SCFTM_PWM_ChangeHiRes(FTM0,kFTM_Chnl_2,20000,30);
     SCFTM_PWM_ChangeHiRes(FTM0,kFTM_Chnl_3,20000,0);
+    SCFTM_PWM_ChangeHiRes(FTM3,kFTM_Chnl_7,50,7.3);
     HAL_ExitCritical();
     //eeeeSCFTM_PWM_ChangeHiRes(FTM3,kFTM_Chnl_7,50,7.3);
    pitMgr_t::insert(20U, 3U, SERVO_Run, pitMgr_t::enable);//舵机中断
@@ -191,7 +192,7 @@ void main(void)
            image_main();
            SERVO_GetPid();
                 dispBuffer->Clear();
-                const uint8_t imageTH = 100;
+                const uint8_t imageTH = 80;
                 for (int i = 0; i < cameraCfg.imageRow; i += 2)
                 {
                     int16_t imageRow = i >> 1;//除以2 为了加速;
