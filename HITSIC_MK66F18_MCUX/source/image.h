@@ -8,8 +8,6 @@
 #ifndef IMAGE_H_
 #define IMAGE_H_
 
-#ifndef _IMAGE_H
-#define _IMAGE_H
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -38,6 +36,8 @@
 extern uint8_t IMG[CAMERA_H][CAMERA_W];//二值化后图像数组
 extern uint8_t image_Buffer_0[CAMERA_H][CAMERA_W];
 extern uint8_t* fullBuffer;//指向灰度图的首地址
+extern int TRUE_TH;
+extern int foresight;
 
 void head_clear(void);
 void THRE(void);
@@ -52,7 +52,7 @@ void get_mid_line(void);
 float get_error(void);
 
 void my_memset(uint8_t* ptr, uint8_t num, uint8_t size);
-#endif //
+
 
 
 

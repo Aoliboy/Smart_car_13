@@ -88,7 +88,7 @@ FATFS fatfs;                                   //逻辑驱动器的工作区
 
 
 void MENU_DataSetUp(void);
-uint8_t *fullBuffer = NULL;
+//uint8_t *fullBuffer = NULL;
 
 cam_zf9v034_configPacket_t cameraCfg;
 dmadvp_config_t dmadvpCfg;
@@ -102,16 +102,19 @@ disp_ssd1306_frameBuffer_t dispBuffer;
 graphic::bufPrint0608_t<disp_ssd1306_frameBuffer_t> bufPrinter(dispBuffer);
 float error_1=0;
 float error_2=0;
-const float servo_mid=7.45;
-float servo_pwm=7.45;
-void SERVO_Run(void);
+static float servo_mid=7.45;
+static float servo_kp=0.015,servo_ki=0.01;
+static float servo_pwm=7.45;
+static int imageTH = 100;
+static float motor_speed = 20;
+void SERVO_Run(void *_userData);
 void SERVO_GetPid(void);
-
+void MOTOR_Run(void *_userData);
 
 void main(void)
 {
     /** 初始化阶段，关闭总中断 */
-    HAL_EnterCritical();
+       HAL_EnterCritical();
 
     /** BSP（板级支持包）初始化 */
     RTECLK_HsRun_180MHz();
@@ -166,48 +169,41 @@ void main(void)
     /** 初始化IMU */
     //TODO: 在这里初始化IMU（MPU6050）
     /** 菜单就绪 */
-   // MENU_Resume();
+    MENU_Resume();
     /** 控制环初始化 */
     //TODO: 在这里初始化控制环
     /** 初始化结束，开启总中断 */
-    SCFTM_PWM_ChangeHiRes(FTM0,kFTM_Chnl_0,20000,30);//电机恒定速度输出
-    SCFTM_PWM_ChangeHiRes(FTM0,kFTM_Chnl_1,20000,0);
-    SCFTM_PWM_ChangeHiRes(FTM0,kFTM_Chnl_2,20000,30);
-    SCFTM_PWM_ChangeHiRes(FTM0,kFTM_Chnl_3,20000,0);
-    SCFTM_PWM_ChangeHiRes(FTM3,kFTM_Chnl_7,50,7.3);
-    HAL_ExitCritical();
+
+
     //eeeeSCFTM_PWM_ChangeHiRes(FTM3,kFTM_Chnl_7,50,7.3);
    pitMgr_t::insert(20U, 3U, SERVO_Run, pitMgr_t::enable);//舵机中断
-
-
-
+   pitMgr_t::insert(5U, 1U, MOTOR_Run, pitMgr_t::enable);//电机中断
+   HAL_ExitCritical();
     /** 内置DSP函数测试 */
     float f = arm_sin_f32(0.6f);
 
     while (true)
     {
         while (kStatus_Success != DMADVP_TransferGetFullBuffer(DMADVP0, &dmadvpHandle, &fullBuffer));
-
            THRE();
            image_main();
            SERVO_GetPid();
-                dispBuffer->Clear();
-                const uint8_t imageTH = 80;
-                for (int i = 0; i < cameraCfg.imageRow; i += 2)
-                {
-                    int16_t imageRow = i >> 1;//除以2 为了加速;
-                    int16_t dispRow = (imageRow / 8) + 1, dispShift = (imageRow % 8);
-                    for (int j = 0; j < cameraCfg.imageCol; j += 2)
-                    {
-                        int16_t dispCol = j >> 1;
-                        if (fullBuffer[i * cameraCfg.imageCol + j] > imageTH)
-                        {
-                            dispBuffer->SetPixelColor(dispCol, imageRow, 1);
-                        }
-                    }
-                }
-
-                DISP_SSD1306_BufferUpload((uint8_t*) dispBuffer);
+//                dispBuffer->Clear();
+//                const uint8_t imageTH = 100;
+//                for (int i = 0; i < cameraCfg.imageRow; i += 2)
+//                {
+//                    int16_t imageRow = i >> 1;//除以2 为了加速;
+//                    int16_t dispRow = (imageRow / 8) + 1, dispShift = (imageRow % 8);
+//                    for (int j = 0; j < cameraCfg.imageCol; j += 2)
+//                    {
+//                        int16_t dispCol = j >> 1;
+//                        if (fullBuffer[i * cameraCfg.imageCol + j]> imageTH)
+//                        {
+//                            dispBuffer->SetPixelColor(dispCol, imageRow, 1);
+//                        }
+//                    }
+//                }
+//                DISP_SSD1306_BufferUpload((uint8_t*) dispBuffer);
                 DMADVP_TransferSubmitEmptyBuffer(DMADVP0, &dmadvpHandle, fullBuffer);
  //TODO: 在这里添加车模保护代码
     }
@@ -215,8 +211,25 @@ void main(void)
 
 void MENU_DataSetUp(void)
 {
-    MENU_ListInsert(menu_menuRoot, MENU_ItemConstruct(nullType, NULL, "EXAMPLE", 0, 0));
+    MENU_ListInsert(menu_menuRoot, MENU_ItemConstruct(nullType, NULL, " ", 0, 0));
     //TODO: 在这里添加子菜单和菜单项
+    static menu_list_t *Testlist;
+    //添加舵机调参菜单
+    Testlist = MENU_ListConstruct("Servo", 4, menu_menuRoot);
+    MENU_ListInsert(menu_menuRoot, MENU_ItemConstruct(menuType, Testlist, "Servo", 0, 0));
+    MENU_ListInsert(Testlist, MENU_ItemConstruct(varfType, &servo_kp, "kp", 10, menuItem_data_global));
+    MENU_ListInsert(Testlist, MENU_ItemConstruct(varfType, &servo_ki, "kd", 11, menuItem_data_global));
+    MENU_ListInsert(Testlist, MENU_ItemConstruct(varfType, &servo_mid, "mid", 12, menuItem_data_global));
+    //添加图像调参菜单
+    Testlist = MENU_ListConstruct("Image", 4, menu_menuRoot);
+    MENU_ListInsert(menu_menuRoot, MENU_ItemConstruct(menuType, Testlist, "Image", 0, 0));
+    MENU_ListInsert(Testlist, MENU_ItemConstruct(variType, &imageTH, "imageTH", 13, menuItem_data_global));
+    MENU_ListInsert(Testlist, MENU_ItemConstruct(variType, &TRUE_TH, "TRUE_TH", 14, menuItem_data_global));
+    MENU_ListInsert(Testlist, MENU_ItemConstruct(variType, &foresight, "foresight", 15, menuItem_data_global));
+    //添加速度调参菜单
+    Testlist = MENU_ListConstruct("Speed", 2, menu_menuRoot);
+    MENU_ListInsert(menu_menuRoot, MENU_ItemConstruct(menuType, Testlist, "Speed", 0, 0));
+    MENU_ListInsert(Testlist, MENU_ItemConstruct(varfType, &motor_speed, "motor_speed", 16, menuItem_data_global));
 }
 
 void CAM_ZF9V034_DmaCallback(edma_handle_t *handle, void *userData, bool transferDone, uint32_t tcds)
@@ -229,7 +242,7 @@ void SERVO_GetPid(void)
 {
     float pwm_error=0;
     error_1=get_error();
-    pwm_error=0.015*error_1+0.01*(error_2-error_1);
+    pwm_error=servo_kp*error_1+servo_ki*(error_1-error_2);
     servo_pwm=servo_mid+pwm_error;
     if(servo_pwm<6.8)
         servo_pwm=6.8;
@@ -238,11 +251,25 @@ void SERVO_GetPid(void)
 
     error_2=error_1;
 };
-void SERVO_Run(void)
+void SERVO_Run(void *_userData)
 {
     SCFTM_PWM_ChangeHiRes(FTM3,kFTM_Chnl_7,50,servo_pwm);
 }
 
+void MOTOR_Run(void *_userData)
+{
+    SCFTM_PWM_ChangeHiRes(FTM0,kFTM_Chnl_0,20000,motor_speed);//电机恒定速度输出
+    SCFTM_PWM_ChangeHiRes(FTM0,kFTM_Chnl_1,20000,0);
+    SCFTM_PWM_ChangeHiRes(FTM0,kFTM_Chnl_2,20000,motor_speed);
+    SCFTM_PWM_ChangeHiRes(FTM0,kFTM_Chnl_3,20000,0);
+//if(get_error()==0)
+//    {
+//        SCFTM_PWM_ChangeHiRes(FTM0,kFTM_Chnl_0,20000,0);
+//
+//        SCFTM_PWM_ChangeHiRes(FTM0,kFTM_Chnl_2,20000,0);
+//
+//    }
+}
 /**
  * 『灯千结的碎碎念』 Tips by C.M. :
  * 1. 浮点数计算有时（例如除零时）会产生“nan”，即“非数（Not-a-Number）”。
