@@ -169,11 +169,10 @@ void main(void)
     /** 初始化IMU */
     //TODO: 在这里初始化IMU（MPU6050）
     /** 菜单就绪 */
-    MENU_Resume();
+   // MENU_Resume();
     /** 控制环初始化 */
     //TODO: 在这里初始化控制环
     /** 初始化结束，开启总中断 */
-
 
     //eeeeSCFTM_PWM_ChangeHiRes(FTM3,kFTM_Chnl_7,50,7.3);
    pitMgr_t::insert(20U, 3U, SERVO_Run, pitMgr_t::enable);//舵机中断
@@ -184,28 +183,34 @@ void main(void)
 
     while (true)
     {
-        while (kStatus_Success != DMADVP_TransferGetFullBuffer(DMADVP0, &dmadvpHandle, &fullBuffer));
-           THRE();
-           image_main();
-           SERVO_GetPid();
-//                dispBuffer->Clear();
-//                const uint8_t imageTH = 100;
-//                for (int i = 0; i < cameraCfg.imageRow; i += 2)
-//                {
-//                    int16_t imageRow = i >> 1;//除以2 为了加速;
-//                    int16_t dispRow = (imageRow / 8) + 1, dispShift = (imageRow % 8);
-//                    for (int j = 0; j < cameraCfg.imageCol; j += 2)
-//                    {
-//                        int16_t dispCol = j >> 1;
-//                        if (fullBuffer[i * cameraCfg.imageCol + j]> imageTH)
-//                        {
-//                            dispBuffer->SetPixelColor(dispCol, imageRow, 1);
-//                        }
-//                    }
-//                }
-//                DISP_SSD1306_BufferUpload((uint8_t*) dispBuffer);
-                DMADVP_TransferSubmitEmptyBuffer(DMADVP0, &dmadvpHandle, fullBuffer);
- //TODO: 在这里添加车模保护代码
+        if(GPIO_PinRead(GPIOA,13))
+        {
+            while (kStatus_Success != DMADVP_TransferGetFullBuffer(DMADVP0, &dmadvpHandle, &fullBuffer));
+                       THRE();
+                       image_main();
+                       SERVO_GetPid();
+                        dispBuffer->Clear();
+                        const uint8_t imageTH = 100;
+                          for (int i = 0; i < cameraCfg.imageRow; i += 2)
+                          {
+                            int16_t imageRow = i >> 1;//除以2 为了加速;
+                              int16_t dispRow = (imageRow / 8) + 1, dispShift = (imageRow % 8);
+                              for (int j = 0; j < cameraCfg.imageCol; j += 2)
+                             {
+                                   int16_t dispCol = j >> 1;
+                                  if (fullBuffer[i * cameraCfg.imageCol + j]> imageTH)
+                                  {
+                                      dispBuffer->SetPixelColor(dispCol, imageRow, 1);
+                                   }
+                              }
+                          }
+                            DISP_SSD1306_BufferUpload((uint8_t*) dispBuffer);
+                            DMADVP_TransferSubmitEmptyBuffer(DMADVP0, &dmadvpHandle, fullBuffer);
+           //  TODO: 在这里添加车模保护代码
+        }else{
+
+            MENU_Resume();
+        }
     }
 }
 
