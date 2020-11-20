@@ -107,6 +107,7 @@ static float servo_kp=0.015,servo_ki=0.01;
 static float servo_pwm=7.45;
 static int imageTH = 100;
 static float motor_speed = 20;
+static bool menu_ctrl=0;
 void SERVO_Run(void *_userData);
 void SERVO_GetPid(void);
 void MOTOR_Run(void *_userData);
@@ -173,7 +174,6 @@ void main(void)
     /** 控制环初始化 */
     //TODO: 在这里初始化控制环
     /** 初始化结束，开启总中断 */
-
     //eeeeSCFTM_PWM_ChangeHiRes(FTM3,kFTM_Chnl_7,50,7.3);
    pitMgr_t::insert(20U, 3U, SERVO_Run, pitMgr_t::enable);//舵机中断
    pitMgr_t::insert(5U, 1U, MOTOR_Run, pitMgr_t::enable);//电机中断
@@ -185,6 +185,11 @@ void main(void)
     {
         if(GPIO_PinRead(GPIOA,13))
         {
+            if(1==menu_ctrl)
+            {
+              MENU_Suspend();
+              menu_ctrl=0;
+            }
             while (kStatus_Success != DMADVP_TransferGetFullBuffer(DMADVP0, &dmadvpHandle, &fullBuffer));
                        THRE();
                        image_main();
@@ -208,8 +213,11 @@ void main(void)
                             DMADVP_TransferSubmitEmptyBuffer(DMADVP0, &dmadvpHandle, fullBuffer);
            //  TODO: 在这里添加车模保护代码
         }else{
-
+            if(0==menu_ctrl)
+            {
+            menu_ctrl=1;
             MENU_Resume();
+            }
         }
     }
 }
