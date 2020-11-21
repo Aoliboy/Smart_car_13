@@ -85,6 +85,7 @@ FATFS fatfs;                                   //逻辑驱动器的工作区
 /** SCLIB_TEST */
 #include "sc_test.hpp"
 #include"image.h"
+#include"em.h"
 
 
 void MENU_DataSetUp(void);
@@ -102,20 +103,23 @@ disp_ssd1306_frameBuffer_t dispBuffer;
 graphic::bufPrint0608_t<disp_ssd1306_frameBuffer_t> bufPrinter(dispBuffer);
 float error_1=0;
 float error_2=0;
-static float servo_mid=7.45;
-static float servo_kp=0.015,servo_ki=0.01;
-static float servo_pwm=7.45;
+static float servo_mid=7.3;
+static float servo_kp=0.015,servo_kd=0.01;
+static float em_kp=1,em_kd=0.9;
+static float servo_pwm=servo_mid;
 static int imageTH = 100;
 static float motor_speed = 20;
 static bool menu_ctrl=0;
+static bool car_protect=0;
 void SERVO_Run(void *_userData);
-void SERVO_GetPid(void);
+void SERVO_GetPid(void); 
 void MOTOR_Run(void *_userData);
+static float error;
 
 void main(void)
 {
     /** 初始化阶段，关闭总中断 */
-       HAL_EnterCritical();
+        HAL_EnterCritical();
 
     /** BSP（板级支持包）初始化 */
     RTECLK_HsRun_180MHz();
@@ -170,7 +174,7 @@ void main(void)
     /** 初始化IMU */
     //TODO: 在这里初始化IMU（MPU6050）
     /** 菜单就绪 */
-   // MENU_Resume();
+   MENU_Resume();
     /** 控制环初始化 */
     //TODO: 在这里初始化控制环
     /** 初始化结束，开启总中断 */
@@ -180,17 +184,20 @@ void main(void)
    HAL_ExitCritical();
     /** 内置DSP函数测试 */
     float f = arm_sin_f32(0.6f);
+    DISP_SSD1306_delay_ms(2000);//车启动保护
+    car_protect=1;
+
 
     while (true)
     {
-        if(GPIO_PinRead(GPIOA,13))
+        /*while(GPIO_PinRead(GPIOA,13))
         {
             if(1==menu_ctrl)
             {
               MENU_Suspend();
               menu_ctrl=0;
             }
-            while (kStatus_Success != DMADVP_TransferGetFullBuffer(DMADVP0, &dmadvpHandle, &fullBuffer));
+           /* while (kStatus_Success != DMADVP_TransferGetFullBuffer(DMADVP0, &dmadvpHandle, &fullBuffer));
                        THRE();
                        image_main();
                        SERVO_GetPid();
@@ -211,15 +218,17 @@ void main(void)
                           }
                             DISP_SSD1306_BufferUpload((uint8_t*) dispBuffer);
                             DMADVP_TransferSubmitEmptyBuffer(DMADVP0, &dmadvpHandle, fullBuffer);
+
            //  TODO: 在这里添加车模保护代码
-        }else{
-            if(0==menu_ctrl)
-            {
+        }
+       if(0==menu_ctrl){
             menu_ctrl=1;
             MENU_Resume();
-            }
-        }
+            }*/
+        error=EM_ErrorUpdate();
+        SERVO_GetPid();
     }
+
 }
 
 void MENU_DataSetUp(void)
@@ -231,7 +240,7 @@ void MENU_DataSetUp(void)
     Testlist = MENU_ListConstruct("Servo", 4, menu_menuRoot);
     MENU_ListInsert(menu_menuRoot, MENU_ItemConstruct(menuType, Testlist, "Servo", 0, 0));
     MENU_ListInsert(Testlist, MENU_ItemConstruct(varfType, &servo_kp, "kp", 10, menuItem_data_global));
-    MENU_ListInsert(Testlist, MENU_ItemConstruct(varfType, &servo_ki, "kd", 11, menuItem_data_global));
+    MENU_ListInsert(Testlist, MENU_ItemConstruct(varfType, &servo_kd, "kd", 11, menuItem_data_global));
     MENU_ListInsert(Testlist, MENU_ItemConstruct(varfType, &servo_mid, "mid", 12, menuItem_data_global));
     //添加图像调参菜单
     Testlist = MENU_ListConstruct("Image", 4, menu_menuRoot);
@@ -243,19 +252,30 @@ void MENU_DataSetUp(void)
     Testlist = MENU_ListConstruct("Speed", 2, menu_menuRoot);
     MENU_ListInsert(menu_menuRoot, MENU_ItemConstruct(menuType, Testlist, "Speed", 0, 0));
     MENU_ListInsert(Testlist, MENU_ItemConstruct(varfType, &motor_speed, "motor_speed", 16, menuItem_data_global));
+    //添加AD采集值显示
+    Testlist = MENU_ListConstruct("AD", 4, menu_menuRoot);
+    MENU_ListInsert(menu_menuRoot, MENU_ItemConstruct(menuType, Testlist, "AD", 0, 0));
+    MENU_ListInsert(Testlist, MENU_ItemConstruct(varfType, &AD[0], "AD0", 0, menuItem_data_ROFlag | menuItem_data_NoSave | menuItem_data_NoLoad));
+    MENU_ListInsert(Testlist, MENU_ItemConstruct(varfType, &AD[6], "AD6", 0, menuItem_data_ROFlag | menuItem_data_NoSave | menuItem_data_NoLoad));
+    MENU_ListInsert(Testlist, MENU_ItemConstruct(varfType, &error, "Error", 0, menuItem_data_ROFlag | menuItem_data_NoSave | menuItem_data_NoLoad));
+    //添加电磁菜单
+    Testlist = MENU_ListConstruct("EM", 4, menu_menuRoot);
+    MENU_ListInsert(menu_menuRoot, MENU_ItemConstruct(menuType, Testlist, "EM", 0, 0));
+    MENU_ListInsert(Testlist, MENU_ItemConstruct(varfType, &em_kp, "kp", 17, menuItem_data_global));
+    MENU_ListInsert(Testlist, MENU_ItemConstruct(varfType, &em_kd, "kd", 18, menuItem_data_global));
 }
 
 void CAM_ZF9V034_DmaCallback(edma_handle_t *handle, void *userData, bool transferDone, uint32_t tcds)
 {
-    //TODO: 补完本回调函数，双缓存采图。
+    //TODO: 补完本回调函数，双----存采图。
 
     //TODO: 添加图像处理（转向控制也可以写在这里）
 }
 void SERVO_GetPid(void)
 {
     float pwm_error=0;
-    error_1=get_error();
-    pwm_error=servo_kp*error_1+servo_ki*(error_1-error_2);
+    error_1=EM_ErrorUpdate();
+    pwm_error=em_kp*error_1+em_kd*(error_1-error_2);
     servo_pwm=servo_mid+pwm_error;
     if(servo_pwm<6.8)
         servo_pwm=6.8;
@@ -271,6 +291,8 @@ void SERVO_Run(void *_userData)
 
 void MOTOR_Run(void *_userData)
 {
+    if(!car_protect)
+        return;
     SCFTM_PWM_ChangeHiRes(FTM0,kFTM_Chnl_0,20000,motor_speed);//电机恒定速度输出
     SCFTM_PWM_ChangeHiRes(FTM0,kFTM_Chnl_1,20000,0);
     SCFTM_PWM_ChangeHiRes(FTM0,kFTM_Chnl_2,20000,motor_speed);
