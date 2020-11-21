@@ -98,6 +98,7 @@ void CAM_ZF9V034_DmaCallback(edma_handle_t *handle, void *userData, bool transfe
 
 inv::i2cInterface_t imu_i2c(nullptr, IMU_INV_I2cRxBlocking, IMU_INV_I2cTxBlocking);
 inv::mpu6050_t imu_6050(imu_i2c);
+void CAR_Protect(void);
 
 disp_ssd1306_frameBuffer_t dispBuffer;
 graphic::bufPrint0608_t<disp_ssd1306_frameBuffer_t> bufPrinter(dispBuffer);
@@ -110,11 +111,12 @@ static float servo_pwm=servo_mid;
 static int imageTH = 100;
 static float motor_speed = 20;
 static bool menu_ctrl=0;
-static bool car_protect=0;
+static int car_protect=0;
 void SERVO_Run(void *_userData);
 void SERVO_GetPid(void); 
 void MOTOR_Run(void *_userData);
 static float error;
+
 
 void main(void)
 {
@@ -226,7 +228,9 @@ void main(void)
             MENU_Resume();
             }*/
         error=EM_ErrorUpdate();
+        CAR_Protect();
         SERVO_GetPid();
+        
     }
 
 }
@@ -253,16 +257,19 @@ void MENU_DataSetUp(void)
     MENU_ListInsert(menu_menuRoot, MENU_ItemConstruct(menuType, Testlist, "Speed", 0, 0));
     MENU_ListInsert(Testlist, MENU_ItemConstruct(varfType, &motor_speed, "motor_speed", 16, menuItem_data_global));
     //添加AD采集值显示
-    Testlist = MENU_ListConstruct("AD", 4, menu_menuRoot);
+    Testlist = MENU_ListConstruct("AD", 5, menu_menuRoot);
     MENU_ListInsert(menu_menuRoot, MENU_ItemConstruct(menuType, Testlist, "AD", 0, 0));
     MENU_ListInsert(Testlist, MENU_ItemConstruct(varfType, &AD[0], "AD0", 0, menuItem_data_ROFlag | menuItem_data_NoSave | menuItem_data_NoLoad));
     MENU_ListInsert(Testlist, MENU_ItemConstruct(varfType, &AD[6], "AD6", 0, menuItem_data_ROFlag | menuItem_data_NoSave | menuItem_data_NoLoad));
     MENU_ListInsert(Testlist, MENU_ItemConstruct(varfType, &error, "Error", 0, menuItem_data_ROFlag | menuItem_data_NoSave | menuItem_data_NoLoad));
+    MENU_ListInsert(Testlist, MENU_ItemConstruct(variType, &car_protect, "protect", 0, menuItem_data_ROFlag | menuItem_data_NoSave | menuItem_data_NoLoad));
     //添加电磁菜单
-    Testlist = MENU_ListConstruct("EM", 4, menu_menuRoot);
+    Testlist = MENU_ListConstruct("EM", 3, menu_menuRoot);
     MENU_ListInsert(menu_menuRoot, MENU_ItemConstruct(menuType, Testlist, "EM", 0, 0));
     MENU_ListInsert(Testlist, MENU_ItemConstruct(varfType, &em_kp, "kp", 17, menuItem_data_global));
     MENU_ListInsert(Testlist, MENU_ItemConstruct(varfType, &em_kd, "kd", 18, menuItem_data_global));
+   
+    
 }
 
 void CAM_ZF9V034_DmaCallback(edma_handle_t *handle, void *userData, bool transferDone, uint32_t tcds)
@@ -292,7 +299,11 @@ void SERVO_Run(void *_userData)
 void MOTOR_Run(void *_userData)
 {
     if(!car_protect)
+    {
+     SCFTM_PWM_ChangeHiRes(FTM0,kFTM_Chnl_0,20000,0);
+     SCFTM_PWM_ChangeHiRes(FTM0,kFTM_Chnl_2,20000,0);
         return;
+    }
     SCFTM_PWM_ChangeHiRes(FTM0,kFTM_Chnl_0,20000,motor_speed);//电机恒定速度输出
     SCFTM_PWM_ChangeHiRes(FTM0,kFTM_Chnl_1,20000,0);
     SCFTM_PWM_ChangeHiRes(FTM0,kFTM_Chnl_2,20000,motor_speed);
@@ -304,6 +315,13 @@ void MOTOR_Run(void *_userData)
 //        SCFTM_PWM_ChangeHiRes(FTM0,kFTM_Chnl_2,20000,0);
 //
 //    }
+}
+void CAR_Protect(void)
+{
+if(AD[0]<10||AD[6]<10)
+  car_protect=0;
+ else
+  car_protect=1;
 }
 /**
  * 『灯千结的碎碎念』 Tips by C.M. :
