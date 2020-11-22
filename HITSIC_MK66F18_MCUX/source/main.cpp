@@ -121,7 +121,7 @@ static float error;
 void main(void)
 {
     /** 初始化阶段，关闭总中断 */
-        HAL_EnterCritical();
+         HAL_EnterCritical();
 
     /** BSP（板级支持包）初始化 */
     RTECLK_HsRun_180MHz();
@@ -284,8 +284,8 @@ void SERVO_GetPid(void)
     error_1=EM_ErrorUpdate();
     pwm_error=em_kp*error_1+em_kd*(error_1-error_2);
     servo_pwm=servo_mid+pwm_error;
-    if(servo_pwm<6.8)
-        servo_pwm=6.8;
+    if(servo_pwm<6.4)
+        servo_pwm=6.4;
     else if(servo_pwm>8.2)
         servo_pwm=8.2;
 
@@ -318,7 +318,7 @@ void MOTOR_Run(void *_userData)
 }
 void CAR_Protect(void)
 {
-if(AD[0]<10||AD[6]<10)
+if(AD[0]<5||AD[6]<5)
   car_protect=0;
  else
   car_protect=1;
