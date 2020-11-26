@@ -105,12 +105,13 @@ float error_2=0;
 static float servo_mid=7.45;
 static float servo_kp=0.015,servo_ki=0.01;
 static float servo_pwm=7.45;
-static int imageTH = 100;
+static int imageTH = 180;
 static float motor_speed = 20;
 static bool menu_ctrl=0;
 void SERVO_Run(void *_userData);
 void SERVO_GetPid(void);
 void MOTOR_Run(void *_userData);
+
 
 void main(void)
 {
@@ -154,6 +155,7 @@ void main(void)
     //初始化部分：
     cam_zf9v034_configPacket_t cameraCfg;
         CAM_ZF9V034_GetDefaultConfig(&cameraCfg);                                   //设置摄像头配置
+        cameraCfg.imageGain = 16;//曝光度
         CAM_ZF9V034_CfgWrite(&cameraCfg);                                   //写入配置
         dmadvp_config_t dmadvpCfg;
         CAM_ZF9V034_GetReceiverConfig(&dmadvpCfg, &cameraCfg);    //生成对应接收器的配置数据，使用此数据初始化接受器并接收图像数据。
@@ -195,7 +197,7 @@ void main(void)
                        image_main();
                        SERVO_GetPid();
                         dispBuffer->Clear();
-                        const uint8_t imageTH = 100;
+                        const uint8_t imageTH = 0;
                           for (int i = 0; i < cameraCfg.imageRow; i += 2)
                           {
                             int16_t imageRow = i >> 1;//除以2 为了加速;
@@ -203,7 +205,7 @@ void main(void)
                               for (int j = 0; j < cameraCfg.imageCol; j += 2)
                              {
                                    int16_t dispCol = j >> 1;
-                                  if (fullBuffer[i * cameraCfg.imageCol + j]> imageTH)
+                                  if (IMG[i][j] > imageTH)//fullBuffer[i * cameraCfg.imageCol + j]
                                   {
                                       dispBuffer->SetPixelColor(dispCol, imageRow, 1);
                                    }
@@ -257,8 +259,8 @@ void SERVO_GetPid(void)
     error_1=get_error();
     pwm_error=servo_kp*error_1+servo_ki*(error_1-error_2);
     servo_pwm=servo_mid+pwm_error;
-    if(servo_pwm<6.8)
-        servo_pwm=6.8;
+    if(servo_pwm<6.4)
+        servo_pwm=6.4;
     else if(servo_pwm>8.2)
         servo_pwm=8.2;
 

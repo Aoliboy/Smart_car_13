@@ -51,6 +51,16 @@ void image_main(void);
 void get_mid_line(void);
 float get_error(void);
 
+void type_line(void);
+void get_cross_line1(void);
+void get_cross_line2(void);
+void Reduce(void);
+void midline_check(void);
+void init(void);
+void cross_two_line(void);
+void cross_two_line2(void);
+void zebra_check(void);
+
 void my_memset(uint8_t* ptr, uint8_t num, uint8_t size);
 
 
