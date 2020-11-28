@@ -36,8 +36,11 @@
 extern uint8_t IMG[CAMERA_H][CAMERA_W];//二值化后图像数组
 extern uint8_t image_Buffer_0[CAMERA_H][CAMERA_W];
 extern uint8_t* fullBuffer;//指向灰度图的首地址
-extern int TRUE_TH;
+extern uint8_t threshold;
 extern int foresight;
+extern uint8_t zebra_flag;
+extern uint8_t zebra_flag2;
+extern uint8_t line_type;
 
 void head_clear(void);
 void THRE(void);
@@ -50,6 +53,16 @@ void ordinary_two_line(void);
 void image_main(void);
 void get_mid_line(void);
 float get_error(void);
+
+void type_line(void);
+void get_cross_line1(void);
+void get_cross_line2(void);
+void Reduce(void);
+void midline_check(void);
+void init(void);
+void cross_two_line(void);
+void cross_two_line2(void);
+void zebra_check(void);
 
 void my_memset(uint8_t* ptr, uint8_t num, uint8_t size);
 

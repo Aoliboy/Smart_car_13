@@ -43,7 +43,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- *///ocean
+ */
 #include "hitsic_common.h"
 
 /** HITSIC_Module_DRV */
@@ -105,17 +105,18 @@ float error_2=0;
 static float servo_mid=7.45;
 static float servo_kp=0.015,servo_ki=0.01;
 static float servo_pwm=7.45;
-static int imageTH = 100;
+static int imageTH = 0;
 static float motor_speed = 20;
+static bool menu_ctrl=0;
 void SERVO_Run(void *_userData);
 void SERVO_GetPid(void);
 void MOTOR_Run(void *_userData);
 
+
 void main(void)
 {
     /** 初始化阶段，关闭总中断 */
-       HAL_EnterCritical();
-
+      HAL_EnterCritical();
     /** BSP（板级支持包）初始化 */
     RTECLK_HsRun_180MHz();
     RTEPIN_Basic();
@@ -153,6 +154,7 @@ void main(void)
     //初始化部分：
     cam_zf9v034_configPacket_t cameraCfg;
         CAM_ZF9V034_GetDefaultConfig(&cameraCfg);                                   //设置摄像头配置
+        cameraCfg.imageGain = 16;//曝光度
         CAM_ZF9V034_CfgWrite(&cameraCfg);                                   //写入配置
         dmadvp_config_t dmadvpCfg;
         CAM_ZF9V034_GetReceiverConfig(&dmadvpCfg, &cameraCfg);    //生成对应接收器的配置数据，使用此数据初始化接受器并接收图像数据。
@@ -169,12 +171,10 @@ void main(void)
     /** 初始化IMU */
     //TODO: 在这里初始化IMU（MPU6050）
     /** 菜单就绪 */
-    MENU_Resume();
+   // MENU_Resume();
     /** 控制环初始化 */
     //TODO: 在这里初始化控制环
     /** 初始化结束，开启总中断 */
-
-
     //eeeeSCFTM_PWM_ChangeHiRes(FTM3,kFTM_Chnl_7,50,7.3);
    pitMgr_t::insert(20U, 3U, SERVO_Run, pitMgr_t::enable);//舵机中断
    pitMgr_t::insert(5U, 1U, MOTOR_Run, pitMgr_t::enable);//电机中断
@@ -184,28 +184,42 @@ void main(void)
 
     while (true)
     {
-        while (kStatus_Success != DMADVP_TransferGetFullBuffer(DMADVP0, &dmadvpHandle, &fullBuffer));
-           THRE();
-           image_main();
-           SERVO_GetPid();
-//                dispBuffer->Clear();
-//                const uint8_t imageTH = 100;
-//                for (int i = 0; i < cameraCfg.imageRow; i += 2)
-//                {
-//                    int16_t imageRow = i >> 1;//除以2 为了加速;
-//                    int16_t dispRow = (imageRow / 8) + 1, dispShift = (imageRow % 8);
-//                    for (int j = 0; j < cameraCfg.imageCol; j += 2)
-//                    {
-//                        int16_t dispCol = j >> 1;
-//                        if (fullBuffer[i * cameraCfg.imageCol + j]> imageTH)
-//                        {
-//                            dispBuffer->SetPixelColor(dispCol, imageRow, 1);
-//                        }
-//                    }
-//                }
-//                DISP_SSD1306_BufferUpload((uint8_t*) dispBuffer);
-                DMADVP_TransferSubmitEmptyBuffer(DMADVP0, &dmadvpHandle, fullBuffer);
- //TODO: 在这里添加车模保护代码
+        if(GPIO_PinRead(GPIOA,13))
+        {
+            if(1==menu_ctrl)
+            {
+              MENU_Suspend();
+              menu_ctrl=0;
+            }
+            while (kStatus_Success != DMADVP_TransferGetFullBuffer(DMADVP0, &dmadvpHandle, &fullBuffer));
+                       THRE();
+                       image_main();
+                       SERVO_GetPid();
+                        dispBuffer->Clear();
+                        //const uint8_t imageTH = 0;
+                          for (int i = 0; i < cameraCfg.imageRow; i += 2)
+                          {
+                            int16_t imageRow = i >> 1;//除以2 为了加速;
+                              int16_t dispRow = (imageRow / 8) + 1, dispShift = (imageRow % 8);
+                              for (int j = 0; j < cameraCfg.imageCol; j += 2)
+                             {
+                                   int16_t dispCol = j >> 1;
+                                  if (IMG[i][j] > imageTH)//fullBuffer[i * cameraCfg.imageCol + j]
+                                  {
+                                      dispBuffer->SetPixelColor(dispCol, imageRow, 1);
+                                   }
+                              }
+                          }
+                            DISP_SSD1306_BufferUpload((uint8_t*) dispBuffer);
+                            DMADVP_TransferSubmitEmptyBuffer(DMADVP0, &dmadvpHandle, fullBuffer);
+           //  TODO: 在这里添加车模保护代码
+        }else{
+            if(0==menu_ctrl)
+            {
+            menu_ctrl=1;
+            MENU_Resume();
+            }
+        }
     }
 }
 
@@ -223,8 +237,8 @@ void MENU_DataSetUp(void)
     //添加图像调参菜单
     Testlist = MENU_ListConstruct("Image", 4, menu_menuRoot);
     MENU_ListInsert(menu_menuRoot, MENU_ItemConstruct(menuType, Testlist, "Image", 0, 0));
-    MENU_ListInsert(Testlist, MENU_ItemConstruct(variType, &imageTH, "imageTH", 13, menuItem_data_global));
-    MENU_ListInsert(Testlist, MENU_ItemConstruct(variType, &TRUE_TH, "TRUE_TH", 14, menuItem_data_global));
+    //MENU_ListInsert(Testlist, MENU_ItemConstruct(variType, &imageTH, "imageTH", 13, menuItem_data_global));
+    MENU_ListInsert(Testlist, MENU_ItemConstruct(variType, &threshold, "threshold", 14, menuItem_data_global));
     MENU_ListInsert(Testlist, MENU_ItemConstruct(variType, &foresight, "foresight", 15, menuItem_data_global));
     //添加速度调参菜单
     Testlist = MENU_ListConstruct("Speed", 2, menu_menuRoot);
@@ -244,8 +258,8 @@ void SERVO_GetPid(void)
     error_1=get_error();
     pwm_error=servo_kp*error_1+servo_ki*(error_1-error_2);
     servo_pwm=servo_mid+pwm_error;
-    if(servo_pwm<6.8)
-        servo_pwm=6.8;
+    if(servo_pwm<6.4)
+        servo_pwm=6.4;
     else if(servo_pwm>8.2)
         servo_pwm=8.2;
 
@@ -262,6 +276,12 @@ void MOTOR_Run(void *_userData)
     SCFTM_PWM_ChangeHiRes(FTM0,kFTM_Chnl_1,20000,0);
     SCFTM_PWM_ChangeHiRes(FTM0,kFTM_Chnl_2,20000,motor_speed);
     SCFTM_PWM_ChangeHiRes(FTM0,kFTM_Chnl_3,20000,0);
+    if ((line_type == 4) && (zebra_flag == 1))
+    {
+        SCFTM_PWM_ChangeHiRes(FTM0,kFTM_Chnl_0,20000,0);//电机恒定速度输出
+        SCFTM_PWM_ChangeHiRes(FTM0,kFTM_Chnl_2,20000,0);
+            zebra_flag = 0;//只开启一次中断
+    }
 //if(get_error()==0)
 //    {
 //        SCFTM_PWM_ChangeHiRes(FTM0,kFTM_Chnl_0,20000,0);
