@@ -35,12 +35,11 @@ uint8_t mid_line[CAMERA_H];
 int all_connect_num = 0;//所有白条子数
 uint8_t top_road;//赛道最高处所在行数
 int foresight = 65;//前瞻初值
-//int TRUE_TH = 210;//外部可调用阈值
 uint8_t threshold = 210;//阈值
 uint8_t *fullBuffer = NULL;
 
 uint8_t line_type = 0;//赛道类型
-int wide_line[CAMERA_W]; //赛道宽度
+uint8_t wide_line[CAMERA_W]; //赛道宽度
 uint8_t pio_x[4] = { 0 }, pio_y[4] = { 0 };//四点坐标
 int any;
 uint8_t zebra_flag;
@@ -402,11 +401,6 @@ void get_mid_line(void)
         if (left_line[i] != MISS)
         {
             mid_line[i] = (left_line[i] + right_line[i]) / 2;
-            if (i < NEAR_LINE)
-            {
-                any = i;
-                midline_check();
-            }
         }
         else
         {
@@ -569,7 +563,7 @@ void cross_two_line2(void)
         k_min = k_ave;
         if (k_ave < 94)
         {
-            /*printf("ki");*/
+
             if (k <= k_ave)
             {
                 k_min = k;
@@ -581,7 +575,7 @@ void cross_two_line2(void)
         }
         else if (k_ave > 94)
         {
-            /*printf("km");*/
+
             if (k >= k_ave)
             {
                 k_min = k;
@@ -594,7 +588,7 @@ void cross_two_line2(void)
         else if (k_ave == 0)
         {
             i = 5;//下方全为白色，跳出此函数
-            /*printf("kk");*/
+
         }
         /*IMG[i][left_line[i]] = blue;
         IMG[i][right_line[i]] = red;*/
@@ -757,8 +751,6 @@ void zebra_check(void)
                 if (mark_num >= 5 )
                 {
                     line_type = 4;
-                    /*printf("\nsssss\n");
-                    printf("\nss%d\n", mark_num);*/
                 }
                 left_line[i] = my_line->connected[j_min].left;
                 right_line[i] = my_line->connected[j_max].right;
@@ -805,16 +797,17 @@ void image_main()
     find_road();
     ordinary_two_line();
     type_line();
-    /*zebra_check();*/
+    zebra_check();
+    zebra_stop();
     if (line_type == 1)
     {
-        printf("aaa\n");
+
         get_cross_line1();
         zebra_flag = 1;
     }
     else if (line_type == 2)
     {
-        printf("bbb\n");
+
         cross_two_line2();
         get_cross_line2();
         zebra_flag = 1;//经过十字，开启过斑马线停车
@@ -825,19 +818,18 @@ void image_main()
         //写一个定时中断函数
         zebra_flag = 0;//只开启一次中断
     }
-    printf("%d %d %d %d\n", pio_x[0], pio_y[0], pio_x[1], pio_y[1]);
-    printf("%d %d %d %d\n\n", pio_x[2], pio_y[2], pio_x[3], pio_y[3]);//找BUG用
+
     for (int i = NEAR_LINE; i >= FAR_LINE; i--)
         if (mid_line[i] != MISS)
             IMG[i][mid_line[i]] = gray;
-//    for (int j = 40; j < 45; j++)
-//    {
-//        IMG[j][94] = red;
-//    }
-//    for (int j = 60; j < 71; j++)
-//    {
-//        IMG[j][94] = red;
-//    }
+    for (int j = 40; j < 45; j++)
+    {
+        IMG[j][94] = red;
+    }
+    for (int j = 60; j < 71; j++)
+    {
+        IMG[j][94] = red;
+    }
 
     //for (int i = 0; i < 120; i++)
     //  for (int j = 1; j <= my_road[i].white_num; j++)
