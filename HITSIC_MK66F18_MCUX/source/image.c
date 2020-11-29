@@ -2,6 +2,7 @@
 
 int f[10 * CAMERA_H];//考察连通域联通性
 //每个白条子属性
+
 typedef struct {
     uint8_t   left;//左边界
     uint8_t   right;//右边界
@@ -831,10 +832,10 @@ void image_main()
         IMG[j][94] = red;
     }
 
-    //for (int i = 0; i < 120; i++)
-    //  for (int j = 1; j <= my_road[i].white_num; j++)
-    //      for (int k = my_road[i].connected[j].left; k <= my_road[i].connected[j].right; k++)
-    //          IMG[i][k] = gray;
+    for (int i = 0; i < 120; i++)
+      for (int j = 1; j <= my_road[i].white_num; j++)
+          for (int k = my_road[i].connected[j].left; k <= my_road[i].connected[j].right; k++)
+              IMG[i][k] = gray;
 }
 
 
