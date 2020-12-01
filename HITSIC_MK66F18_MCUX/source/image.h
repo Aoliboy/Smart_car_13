@@ -38,9 +38,9 @@ extern uint8_t image_Buffer_0[CAMERA_H][CAMERA_W];
 extern uint8_t* fullBuffer;//指向灰度图的首地址
 extern uint8_t threshold;
 extern int foresight;
-extern uint8_t line_type;
 extern uint8_t zebra_flag;
 extern uint8_t zebra_flag2;
+extern uint8_t line_type;
 
 void head_clear(void);
 void THRE(void);
