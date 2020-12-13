@@ -46,7 +46,7 @@ int any;
 uint8_t zebra_flag;
 uint8_t zebra_flag2;
 uint8_t leftline_change[CAMERA_H] = { 0 };
-
+float er = 0;
 ////////////////////////////////////////////
 //功能：二值化
 //输入：灰度图片
@@ -429,14 +429,14 @@ void get_mid_line(void)
 //        if (mid_line[i] != MISS)
 //            IMG[i][mid_line[i]] = red;
 //}
-float get_error()
+void get_error()
 {
-    float a =  80 - mid_line[foresight];
+    er =  80 - mid_line[foresight];
     if(mid_line[foresight]==MISS)
     {
-            a=0;
+            er=255;
     }
-    return a;
+
 }
 
 void type_line(void)
@@ -816,11 +816,11 @@ void image_main()
         zebra_flag = 1;//经过十字，开启过斑马线停车
     }
     get_mid_line();
-    if ((line_type == 4) && (zebra_flag == 1))
-    {
-        //写一个定时中断函数
-        zebra_flag = 0;//只开启一次中断
-    }
+//    if ((line_type == 4) && (zebra_flag == 1))
+//    {
+//        //写一个定时中断函数
+//        zebra_flag = 0;//只开启一次中断
+//    }
     printf("%d %d %d %d\n", pio_x[0], pio_y[0], pio_x[1], pio_y[1]);
     printf("%d %d %d %d\n\n", pio_x[2], pio_y[2], pio_x[3], pio_y[3]);//找BUG用
     for (int i = NEAR_LINE; i >= FAR_LINE; i--)

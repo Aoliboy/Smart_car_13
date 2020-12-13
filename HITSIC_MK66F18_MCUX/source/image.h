@@ -41,6 +41,7 @@ extern int foresight;
 extern uint8_t zebra_flag;
 extern uint8_t zebra_flag2;
 extern uint8_t line_type;
+extern float er;
 
 void head_clear(void);
 void THRE(void);
@@ -52,7 +53,7 @@ uint8_t find_continue(uint8_t i_start, uint8_t j_start);
 void ordinary_two_line(void);
 void image_main(void);
 void get_mid_line(void);
-float get_error(void);
+void get_error(void);
 
 void type_line(void);
 void get_cross_line1(void);

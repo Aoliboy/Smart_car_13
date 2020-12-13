@@ -85,7 +85,7 @@ FATFS fatfs;                                   //逻辑驱动器的工作区
 /** SCLIB_TEST */
 #include "sc_test.hpp"
 #include"image.h"
-
+#include"control.h"
 
 void MENU_DataSetUp(void);
 //uint8_t *fullBuffer = NULL;
@@ -100,23 +100,17 @@ inv::mpu6050_t imu_6050(imu_i2c);
 
 disp_ssd1306_frameBuffer_t dispBuffer;
 graphic::bufPrint0608_t<disp_ssd1306_frameBuffer_t> bufPrinter(dispBuffer);
-float error_1=0;
-float error_2=0;
-static float servo_mid=7.45;
-static float servo_kp=0.015,servo_ki=0.01;
-static float servo_pwm=7.45;
-static int imageTH = 0;
-static float motor_speed = 20;
+
+static int imageTH = 180;
 static bool menu_ctrl=0;
-void SERVO_Run(void *_userData);
-void SERVO_GetPid(void);
-void MOTOR_Run(void *_userData);
+int delayflag = 0;
+
 
 
 void main(void)
 {
     /** 初始化阶段，关闭总中断 */
-       HAL_EnterCritical();
+         HAL_EnterCritical();
 
     /** BSP（板级支持包）初始化 */
     RTECLK_HsRun_180MHz();
@@ -161,7 +155,7 @@ void main(void)
         CAM_ZF9V034_GetReceiverConfig(&dmadvpCfg, &cameraCfg);    //生成对应接收器的配置数据，使用此数据初始化接受器并接收图像数据。
         DMADVP_Init(DMADVP0, &dmadvpCfg);
         dmadvp_handle_t dmadvpHandle;
-        DMADVP_TransferCreateHandle(&dmadvpHandle, DMADVP0, CAM_ZF9V034_UnitTestDmaCallback);
+        DMADVP_TransferCreateHandle(&dmadvpHandle, DMADVP0, CAM_ZF9V034_DmaCallback);
         uint8_t *imageBuffer0 = new uint8_t[DMADVP0->imgSize];
         uint8_t *imageBuffer1 = new uint8_t[DMADVP0->imgSize];
         disp_ssd1306_frameBuffer_t *dispBuffer = new disp_ssd1306_frameBuffer_t;
@@ -177,6 +171,7 @@ void main(void)
     //TODO: 在这里初始化控制环
     /** 初始化结束，开启总中断 */
     //eeeeSCFTM_PWM_ChangeHiRes(FTM3,kFTM_Chnl_7,50,7.3);
+   //DISP_SSD1306_delay_ms(2000);
    pitMgr_t::insert(20U, 3U, SERVO_Run, pitMgr_t::enable);//舵机中断
    pitMgr_t::insert(5U, 1U, MOTOR_Run, pitMgr_t::enable);//电机中断
    HAL_ExitCritical();
@@ -185,6 +180,29 @@ void main(void)
 
     while (true)
     {
+        if((zebra_flag == 1)&&(aaa > 1999 ))//斑马线停车
+        {
+            SDK_DelayAtLeastUs(30000, CLOCK_GetFreq(kCLOCK_CoreSysClk));
+            er = 0;
+            zebra_stop_flag=1;
+            while(1);
+        }
+        if(out_protect == 1)//出赛道保护
+        {
+            while(1);
+        }
+
+        get_error();
+        SERVO_GetPid();
+
+//        if(delayflag == 0)//车延时启动
+//        {
+//            DISP_SSD1306_delay_ms(2000);
+//            delayflag = 1;
+//        }
+
+        WIFItransport();
+        //Speed_Ctrl();
         if(GPIO_PinRead(GPIOA,13))
         {
             if(1==menu_ctrl)
@@ -192,12 +210,8 @@ void main(void)
               MENU_Suspend();
               menu_ctrl=0;
             }
-            while (kStatus_Success != DMADVP_TransferGetFullBuffer(DMADVP0, &dmadvpHandle, &fullBuffer));
-                       THRE();
-                       image_main();
-                       SERVO_GetPid();
                         dispBuffer->Clear();
-
+                        const uint8_t imageTH = 0;
                           for (int i = 0; i < cameraCfg.imageRow; i += 2)
                           {
                             int16_t imageRow = i >> 1;//除以2 为了加速;
@@ -212,7 +226,6 @@ void main(void)
                               }
                           }
                             DISP_SSD1306_BufferUpload((uint8_t*) dispBuffer);
-                            DMADVP_TransferSubmitEmptyBuffer(DMADVP0, &dmadvpHandle, fullBuffer);
            //  TODO: 在这里添加车模保护代码
         }else{
             if(0==menu_ctrl)
@@ -224,77 +237,30 @@ void main(void)
     }
 }
 
-void MENU_DataSetUp(void)
-{
-    MENU_ListInsert(menu_menuRoot, MENU_ItemConstruct(nullType, NULL, " ", 0, 0));
-    //TODO: 在这里添加子菜单和菜单项
-    static menu_list_t *Testlist;
-    //添加舵机调参菜单
-    Testlist = MENU_ListConstruct("Servo", 4, menu_menuRoot);
-    MENU_ListInsert(menu_menuRoot, MENU_ItemConstruct(menuType, Testlist, "Servo", 0, 0));
-    MENU_ListInsert(Testlist, MENU_ItemConstruct(varfType, &servo_kp, "kp", 10, menuItem_data_global));
-    MENU_ListInsert(Testlist, MENU_ItemConstruct(varfType, &servo_ki, "kd", 11, menuItem_data_global));
-    MENU_ListInsert(Testlist, MENU_ItemConstruct(varfType, &servo_mid, "mid", 12, menuItem_data_global));
-    //添加图像调参菜单
-    Testlist = MENU_ListConstruct("Image", 4, menu_menuRoot);
-    MENU_ListInsert(menu_menuRoot, MENU_ItemConstruct(menuType, Testlist, "Image", 0, 0));
-    //MENU_ListInsert(Testlist, MENU_ItemConstruct(variType, &imageTH, "imageTH", 13, menuItem_data_global));
-    MENU_ListInsert(Testlist, MENU_ItemConstruct(variType, &threshold, "threshold", 14, menuItem_data_global));
-    MENU_ListInsert(Testlist, MENU_ItemConstruct(variType, &foresight, "foresight", 15, menuItem_data_global));
-    //添加速度调参菜单
-    Testlist = MENU_ListConstruct("Speed", 2, menu_menuRoot);
-    MENU_ListInsert(menu_menuRoot, MENU_ItemConstruct(menuType, Testlist, "Speed", 0, 0));
-    MENU_ListInsert(Testlist, MENU_ItemConstruct(varfType, &motor_speed, "motor_speed", 16, menuItem_data_global));
-}
-
 void CAM_ZF9V034_DmaCallback(edma_handle_t *handle, void *userData, bool transferDone, uint32_t tcds)
 {
     //TODO: 补完本回调函数，双缓存采图。
-
-    //TODO: 添加图像处理（转向控制也可以写在这里）
-}
-void SERVO_GetPid(void)
-{
-    float pwm_error=0;
-    error_1=get_error();
-    pwm_error=servo_kp*error_1+servo_ki*(error_1-error_2);
-    servo_pwm=servo_mid+pwm_error;
-    if(servo_pwm<6.4)
-        servo_pwm=6.4;
-    else if(servo_pwm>8.2)
-        servo_pwm=8.2;
-
-    error_2=error_1;
-};
-void SERVO_Run(void *_userData)
-{
-    SCFTM_PWM_ChangeHiRes(FTM3,kFTM_Chnl_7,50,servo_pwm);
+    dmadvp_handle_t *dmadvpHandle = (dmadvp_handle_t*) userData;
+    status_t result = 0;
+    DMADVP_EdmaCallbackService(dmadvpHandle, transferDone);
+    result = DMADVP_TransferStart(dmadvpHandle->base, dmadvpHandle);
+    //PRINTF("new full buffer: 0x%-8.8x = 0x%-8.8x\n", handle->fullBuffer.front(), handle->xferCfg.destAddr);
+    if (kStatus_Success != result)
+    {
+        DMADVP_TransferStop(dmadvpHandle->base, dmadvpHandle);
+        PRINTF("transfer stop! insufficent buffer\n");
+    }
+    if (transferDone == true)
+    {
+        DMADVP_TransferGetFullBuffer(DMADVP0, dmadvpHandle, &fullBuffer);
+        image_main();
+        DMADVP_TransferSubmitEmptyBuffer(DMADVP0, dmadvpHandle, fullBuffer);
+    }
 }
 
-void MOTOR_Run(void *_userData)
+void MENU_DataSetUp(void)
 {
-
-    if((line_type == 4) && (zebra_flag == 1))
-    {
-        SCFTM_PWM_ChangeHiRes(FTM0,kFTM_Chnl_0,20000,0);//电机恒定速度输出
-        SCFTM_PWM_ChangeHiRes(FTM0,kFTM_Chnl_1,20000,0);
-        SCFTM_PWM_ChangeHiRes(FTM0,kFTM_Chnl_2,20000,0);
-        SCFTM_PWM_ChangeHiRes(FTM0,kFTM_Chnl_3,20000,0);
-    }
-    else
-    {
-        SCFTM_PWM_ChangeHiRes(FTM0,kFTM_Chnl_0,20000,motor_speed);//电机恒定速度输出
-        SCFTM_PWM_ChangeHiRes(FTM0,kFTM_Chnl_1,20000,0);
-        SCFTM_PWM_ChangeHiRes(FTM0,kFTM_Chnl_2,20000,motor_speed);
-        SCFTM_PWM_ChangeHiRes(FTM0,kFTM_Chnl_3,20000,0);
-    }
-//if(get_error()==0)
-//    {
-//        SCFTM_PWM_ChangeHiRes(FTM0,kFTM_Chnl_0,20000,0);
-//
-//        SCFTM_PWM_ChangeHiRes(FTM0,kFTM_Chnl_2,20000,0);
-//
-//    }
+    Ctrl_MENU_DataSetUp();
 }
 /**
  * 『灯千结的碎碎念』 Tips by C.M. :
